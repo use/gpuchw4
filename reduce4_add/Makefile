@@ -14,7 +14,7 @@ reduce.o: reduce.cu
 	$(NVCC) -arch=sm_52 -c reduce.cu 
 
 timing.o: timing.c
-	$(CXX) -c timing.c
+	$(CXX) -fPIE -c timing.c
 
 clean:
 	rm -f *.o
