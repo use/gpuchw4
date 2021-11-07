@@ -132,74 +132,74 @@ void usage()
 //
 void runCUDA( float *arr, int  n_old, int tile_width)
 {    
-   // set up host memory
-   float *h_in, *h_out, *d_in, *d_out;
-   int n = 0;
-   h_in = GPUPrep(arr, n_old, &n); //Make input size power of 2.
-   h_out = (float *)malloc(MAXDRET * sizeof(float));
-   memset(h_out, 0, MAXDRET * sizeof(float));
+    // set up host memory
+    float *h_in, *h_out, *d_in, *d_out;
+    int n = 0;
+    h_in = GPUPrep(arr, n_old, &n); //Make input size power of 2.
+    h_out = (float *)malloc(MAXDRET * sizeof(float));
+    memset(h_out, 0, MAXDRET * sizeof(float));
 
 
-   if( ! h_in || ! h_out )
-   {
-       printf("Error in host memory allocation!\n");
-       exit(-1);
-   }
-   int num_block = ceil(n / (float)tile_width);
-   printf("Num of blocks is %d\n", num_block);
-   dim3 block(tile_width, 1, 1);
-   dim3 grid(num_block, 1, 1);
+    if( ! h_in || ! h_out )
+    {
+        printf("Error in host memory allocation!\n");
+        exit(-1);
+    }
+    int num_block = ceil(n / (float)tile_width);
+    printf("Num of blocks is %d\n", num_block);
+    dim3 block(tile_width, 1, 1);
+    dim3 grid(num_block, 1, 1);
 
-   // allocate storage for the device
-   cudaMalloc((void**)&d_in, sizeof(float) * n);
-   cudaMalloc((void**)&d_out, sizeof(float) * MAXDRET);
-   cudaMemset(d_out, 0, sizeof(float) * MAXDRET);
+    // allocate storage for the device
+    cudaMalloc((void**)&d_in, sizeof(float) * n);
+    cudaMalloc((void**)&d_out, sizeof(float) * MAXDRET);
+    cudaMemset(d_out, 0, sizeof(float) * MAXDRET);
 
-   // copy input to the device
-   cudaMemcpy(d_in, h_in, sizeof(float) * n, cudaMemcpyHostToDevice);
+    // copy input to the device
+    cudaMemcpy(d_in, h_in, sizeof(float) * n, cudaMemcpyHostToDevice);
 
-   // time the kernel launches using CUDA events
-   cudaEvent_t launch_begin, launch_end;
-   cudaEventCreate(&launch_begin);
-   cudaEventCreate(&launch_end);
+    // time the kernel launches using CUDA events
+    cudaEvent_t launch_begin, launch_end;
+    cudaEventCreate(&launch_begin);
+    cudaEventCreate(&launch_end);
 
-   printf("The input array is:\n");
-   //print out original array
-   if(shouldPrint)
-       printArray(h_in, n);
+    printf("The input array is:\n");
+    //print out original array
+    if(shouldPrint)
+        printArray(h_in, n);
 
 
-   int num_in = n, num_out = ceil((float)n / tile_width);
-   float *temp;
-  
-   printf("Timing simple GPU implementation… \n");
-   // record a CUDA event immediately before and after the kernel launch
-   cudaEventRecord(launch_begin,0);
-   while( 1 )
-   {
-       reduce2<<<grid, block, tile_width * sizeof(float)>>>(d_in, d_out, num_in);
-       check_cuda_errors(__FILE__, __LINE__);
-       cudaDeviceSynchronize();
+    int num_in = n, num_out = ceil((float)n / tile_width);
+    float *temp;
+    
+    printf("Timing simple GPU implementation… \n");
+    // record a CUDA event immediately before and after the kernel launch
+    cudaEventRecord(launch_begin,0);
+    while( 1 )
+    {
+        reduce2<<<grid, block, tile_width * sizeof(float)>>>(d_in, d_out, num_in);
+        check_cuda_errors(__FILE__, __LINE__);
+        cudaDeviceSynchronize();
 
-       // if the number of local sum returned by kernel is greater than the threshold,
-       // we do reduction on GPU for these returned local sums for another pass,
-       // until, num_out < threshold
-       if(num_out >= THRESH)
-       {
-           num_in = num_out;
-           num_out = ceil((float)num_out / tile_width);
-           grid.x = num_out; //change the grid dimension in x direction
-           //Swap d_in and d_out, so that in the next iteration d_out is used as input and d_in is the output.
-           temp = d_in;
-           d_in = d_out;
-           d_out = temp;
-       }
-       else
-       {
-           //copy the ouput of last lauch back to host,
-           cudaMemcpy(h_out, d_out, sizeof(float) * num_out, cudaMemcpyDeviceToHost);
-           break;
-       }
+        // if the number of local sum returned by kernel is greater than the threshold,
+        // we do reduction on GPU for these returned local sums for another pass,
+        // until, num_out < threshold
+        if(num_out >= THRESH)
+        {
+            num_in = num_out;
+            num_out = ceil((float)num_out / tile_width);
+            grid.x = num_out; //change the grid dimension in x direction
+            //Swap d_in and d_out, so that in the next iteration d_out is used as input and d_in is the output.
+            temp = d_in;
+            d_in = d_out;
+            d_out = temp;
+        }
+        else
+        {
+            //copy the ouput of last lauch back to host,
+            cudaMemcpy(h_out, d_out, sizeof(float) * num_out, cudaMemcpyDeviceToHost);
+            break;
+        }
     }//end of while
 
     cudaEventRecord(launch_end,0);
@@ -235,15 +235,15 @@ void runCPU( float * arr, int n )
     for(int i = 0; i < num_cpu_test; ++i) //launch 3 times on CPU
     {
         // timing on CPU
-       then = clock();
-       sum = cpuReduce(arr, n);
-       now = clock();
+        then = clock();
+        sum = cpuReduce(arr, n);
+        now = clock();
 
-       // measure the time spent on CPU
-       float time = 0;
-       time = timeCost(then, now);
+        // measure the time spent on CPU
+        float time = 0;
+        time = timeCost(then, now);
 
-       average_cpu_time += time;
+        average_cpu_time += time;
     }
     average_cpu_time /= num_cpu_test;
     printf(" done. CPU time cost in second: %f\n", average_cpu_time);
@@ -261,15 +261,15 @@ int main(int argc, char *argv[])
 
     // to run this program: ./a.out blockWidth numElements p
     if(argc < 3 || argc > 4) {
-       usage();
-       return 1;
+        usage();
+        return 1;
     } else  if(argc == 3){
-          shouldPrint = 0;
+        shouldPrint = 0;
     } else if(argv[3][0]=='p'){
-          shouldPrint=1;
+        shouldPrint=1;
     } else {
-          usage();
-          return 1;
+        usage();
+        return 1;
     }
   
     //
@@ -285,10 +285,10 @@ int main(int argc, char *argv[])
         printf("Size of input array goes beyond limit!\n");
         usage();
     }
-   
+
     //generate input data from random generator
     float *data = fillArray(n, UPB);
-   
+
     runCUDA( data, n, tile_width );
     runCPU( data, n );   
 
