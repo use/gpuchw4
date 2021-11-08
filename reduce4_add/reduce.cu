@@ -73,9 +73,9 @@ void printArray(float *arr, int n){
    printf("\n");
 }
 
-float cpuReduce(float *h_in, int n)
+double cpuReduce(float *h_in, int n)
 {
-    float s = 0;
+    double s = 0;
     int i;
     for(i = 0; i < n; i ++)
     {
