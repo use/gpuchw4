@@ -156,8 +156,8 @@ __global__ void reduce3(float *in, float *out, int n)
         sdata[tid] += sdata[tid + stride]; //sum number stored in low index
 
         // print after addition
-        if (blockIdx.x == 0 && threadIdx.x == 0) {
-            printf("stride %d\n", stride);
+        // if (blockIdx.x == 0 && threadIdx.x == 0) {
+            // printf("stride %d\n", stride);
             // printf("After iteration %d\n", iteration);
             // for (int j = 0; j < blockDim.x * 2; j++) {
             //     printf("%.0f ", sdata[j]);
@@ -166,7 +166,7 @@ __global__ void reduce3(float *in, float *out, int n)
             //     }
             // }
             // printf("\n");
-        }
+        // }
 
         __syncthreads();
     }
