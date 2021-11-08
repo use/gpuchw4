@@ -121,6 +121,60 @@ int isPowerOfTwo (unsigned int x)
     return (x == 1);
 }
 
+__global__ void reduce3(float *in, float *out, int n)
+{
+    extern __shared__ float sdata[];
+
+    // load shared mem
+    unsigned int tid = threadIdx.x;
+    unsigned int i = blockIdx.x*blockDim.x*2 + threadIdx.x;
+
+    if (i < n) {
+        sdata[tid] = in[i];
+        sdata[tid + blockDim.x] = in[i + blockDim.x];
+    } else {
+        sdata[tid] = 0;
+        sdata[tid + blockDim.x] = 0;
+    }
+
+    __syncthreads();
+
+    // // print before
+    // if (blockIdx.x == 0 && threadIdx.x == 0) {
+    //     for (int j = 0; j < blockDim.x * 2; j++) {
+    //         printf("%.0f ", sdata[j]);
+    //         if (j == blockDim.x - 1) {
+    //             printf("  ");
+    //         }
+    //     }
+    //     printf("\n");
+    // }
+
+    // do reduction in shared mem
+    for (unsigned int stride = blockDim.x; stride >= 1 && threadIdx.x < stride; stride /= 2)
+    {
+        sdata[tid] += sdata[tid + stride]; //sum number stored in low index
+
+        // print after addition
+        if (blockIdx.x == 0 && threadIdx.x == 0) {
+            printf("stride %d\n", stride);
+            // printf("After iteration %d\n", iteration);
+            // for (int j = 0; j < blockDim.x * 2; j++) {
+            //     printf("%.0f ", sdata[j]);
+            //     if (j == blockDim.x - 1) {
+            //         printf("  ");
+            //     }
+            // }
+            // printf("\n");
+        }
+
+        __syncthreads();
+    }
+
+    // write result for this block to global mem
+    if (tid == 0) out[blockIdx.x] = sdata[0];
+}
+
 
 void usage()
 {
@@ -147,7 +201,7 @@ void runCUDA( float *arr, int  n_old, int tile_width)
     }
     int num_block = ceil(n / (float)tile_width);
     printf("Num of blocks is %d\n", num_block);
-    dim3 block(tile_width, 1, 1);
+    dim3 block(tile_width / 2, 1, 1);
     dim3 grid(num_block, 1, 1);
 
     // allocate storage for the device
@@ -177,7 +231,8 @@ void runCUDA( float *arr, int  n_old, int tile_width)
     cudaEventRecord(launch_begin,0);
     while( 1 )
     {
-        reduce2<<<grid, block, tile_width * sizeof(float)>>>(d_in, d_out, num_in);
+        // reduce2<<<grid, block, tile_width * sizeof(float)>>>(d_in, d_out, num_in);
+        reduce3<<<grid, block, tile_width * sizeof(float)>>>(d_in, d_out, num_in);
         check_cuda_errors(__FILE__, __LINE__);
         cudaDeviceSynchronize();
 
