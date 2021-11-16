@@ -58,7 +58,7 @@ float * fillArray(int n, int upbound)
 
    /* generate n random numbers from 0 to unbound - 1 */
    for( i = 0 ; i < n ; i++ ) {
-      ret[i] = rand() % upbound * 1.0f;
+      ret[i] = rand() % upbound / 1000.0f;
    }
    return ret;
 }
